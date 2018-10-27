@@ -1,2 +1,2 @@
 # synapse-vault-auth-provider
-Synapse auth provider to allow Vault-backed applications to log in to Matrix users
+Synapse auth provider to enable [vault-plugin-secrets-matrix](https://github.com/t2bot/vault-plugin-secrets-matrix)
