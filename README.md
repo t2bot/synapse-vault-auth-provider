@@ -98,3 +98,21 @@ Response:
 
 Assuming the hash matches what the provider expects, the response above will be returned
 for the client to use.
+
+# Shared secret storage in Vault
+
+If you haven't already, enable the `kv` plugin:
+
+```
+vault kv enable-versioning secret/
+```
+
+Configure your permissions and tokens to have applicable read/write access to `secret/matrix/users/*`,
+then write your secret:
+
+```
+vault kv put secret/matrix/users/@alice:example.org login_secret=YourRandomString
+```
+
+And there you go! The provider will use the value of `login_secret` as the shared secret
+for that user.
