@@ -64,13 +64,13 @@ and able to be used:
 GET /_matrix/client/r0/login
 
 Response:
+{
+  "flows": [
     {
-      "flows": [
-        {
-          "type": "io.t2bot.vault"
-        }
-      ]
+      "type": "io.t2bot.vault"
     }
+  ]
+}
 ```
 
 Assuming the `type` above is listed as a login flow, the client should then get the
@@ -85,21 +85,21 @@ as `token_hash` in a login request:
 POST /_matrix/client/r0/login
 
 Body:
-    {
-      "type": "io.t2bot.vault",
-      "identifier": {
-        "type": "m.id.user",
-        "user": "@someone:example.org"
-      },
-      "token_hash": "some_very_long_sha256_string"
-    }
+{
+  "type": "io.t2bot.vault",
+  "identifier": {
+    "type": "m.id.user",
+    "user": "@someone:example.org"
+  },
+  "token_hash": "some_very_long_sha256_string"
+}
 
 Response:
-    {
-      "user_id": "@someone:example.org",
-      "access_token": "SomeSortOfAccessToken",
-      "device_id": "SomeDevice"
-    }
+{
+  "user_id": "@someone:example.org",
+  "access_token": "SomeSortOfAccessToken",
+  "device_id": "SomeDevice"
+}
 ```
 
 Assuming the hash matches what the provider expects, the response above will be returned
