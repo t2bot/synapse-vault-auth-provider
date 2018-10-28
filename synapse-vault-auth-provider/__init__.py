@@ -34,10 +34,11 @@ class VaultAuthProvider(object):
         if not hvac:
             raise RuntimeError('Missing hvac library')
 
-        self.vault_path_root = config.vault_path_root
+        self.vault_path_root = config["vault_path_root"]
+        self.vault_kv_mount_point = config["vault_kv_mount_point"]
 
-        token = config.vault_token or os.environ["VAULT_TOKEN"]
-        self.client = hvac.Client(url=config.vault_url, token=token)
+        token = config["vault_token"] or os.environ["VAULT_TOKEN"]
+        self.client = hvac.Client(url=config["vault_url"], token=token)
 
     def get_supported_login_types(self):
         return {
@@ -51,21 +52,46 @@ class VaultAuthProvider(object):
 
         if not login_dict or not login_dict["token_hash"]:
             logger.warning("Missing token hash in login request")
-            defer.returnValue(False)
+            defer.returnValue(None)
+
+        token_hash = self._fix_unicode(login_dict["token_hash"])
 
         user_id = self.account_handler.get_qualified_user_id(username)
+        user_id = self._fix_unicode(user_id)
 
         if not (yield self.account_handler.check_user_exists(user_id)):
-            logger.warning("User does not exist")
-            defer.returnValue(False)
+            logger.warning("User " + user_id + " does not exist")
+            defer.returnValue(None)
 
         # Read the expected token from Vault and compare hmacs
-        secret = self.client.read(self.vault_path_root + '/' + user_id)
+        vault_path = self.vault_path_root + '/' + user_id
+        logger.info("Getting secret for user " + user_id + " at path " + vault_path)
+        response = self.client.kv.v2.read_secret_version(path=vault_path, mount_point=self.vault_kv_mount_point)
+        if not response or "data" not in response or "data" not in response["data"] \
+                or "login_secret" not in response["data"]["data"]:
+            logger.warning("No shared secret found for user " + user_id)
+            defer.returnValue(None)
+        secret = self._fix_unicode(response["data"]["data"]["login_secret"])
         calculated = hmac.new(secret, user_id, hashlib.sha256).hexdigest()
 
-        if not hmac.compare_digest(calculated, login_dict["token_hash"]):
-            logger.warning("Mismatch hashes")
-            defer.returnValue(False)
+        if not hmac.compare_digest(calculated, token_hash):
+            logger.warning("Mismatch hashes for user " + user_id)
+            defer.returnValue(None)
 
         # All is well in the world
-        defer.returnValue(True)
+        defer.returnValue(user_id)
+
+    def _fix_unicode(self, string):
+        return string.encode('ascii','replace')
+
+    @staticmethod
+    def parse_config(config):
+        if not config["vault_url"]:
+            raise Exception("No vault_url defined")
+        if not config["vault_path_root"]:
+            raise Exception("No vault_path_root defined")
+        if not config["vault_kv_mount_point"]:
+            raise Exception("No vault_kv_mount_point defined")
+        if not config["vault_token"]:
+            logger.warning("No vault_token supplied - will be using the environment variable")
+        return config

@@ -30,7 +30,13 @@ password_providers:
       # and use that secret to verify the request. Therefore, the Vault token listed
       # above should have read access to secret/matrix/users/* (or whatever your path
       # actually is).
-      vault_path_root: "secret/matrix/users"
+      #
+      # Note that this is the path itself without the mount point. In the examples above,
+      # this would end up being "matrix/users" while the mount point is "secret"
+      vault_path_root: "matrix/users"
+
+      # The mount point for the above path root.
+      vault_kv_mount_point: "secret"
 ```
 
 Synapse will need to be restarted to pick up the configuration change.
